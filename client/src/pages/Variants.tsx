@@ -614,6 +614,7 @@ export default function Variants() {
                 <tr className="bg-muted/50">
                   <th className="text-left p-3 font-semibold sticky left-0 bg-muted/50 z-10">Variant</th>
                   <th className="p-3 font-semibold text-center">Grade</th>
+                  <th className="p-3 font-semibold text-center">Links</th>
                   <th className="p-3 font-semibold text-center">Pixel ID</th>
                   <th className="p-3 font-semibold text-center">Adv. Match</th>
                   <th className="p-3 font-semibold text-center">noscript</th>
@@ -631,6 +632,16 @@ export default function Variants() {
                   <tr key={v.slug} className="hover:bg-muted/20">
                     <td className="p-3 font-medium sticky left-0 bg-card z-10">{v.name}</td>
                     <td className="p-3 text-center"><span className={`${v.gradeColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded`}>{v.grade}</span></td>
+                    <td className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <a href={v.repo} target="_blank" rel="noopener noreferrer" title="GitHub Repo" className="text-muted-foreground hover:text-primary transition-colors">
+                          <Github className="w-3.5 h-3.5" />
+                        </a>
+                        <a href={v.liveUrl} target="_blank" rel="noopener noreferrer" title="Live Site" className="text-muted-foreground hover:text-primary transition-colors">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </td>
                     <td className="p-3 text-center"><StatusIcon status={v.details.pixelId} /></td>
                     <td className="p-3 text-center"><StatusIcon status={v.details.advancedMatching} /></td>
                     <td className="p-3 text-center"><StatusIcon status={v.details.noscriptFallback} /></td>
