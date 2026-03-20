@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
 import CartDrawer from "./components/CartDrawer";
 import Footer from "./components/Footer";
+import Variants from "./pages/Variants";
 
 function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ function AppRoutes() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/contact" component={Contact} />
       <Route path="/register" component={Register} />
+      <Route path="/variants" component={Variants} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

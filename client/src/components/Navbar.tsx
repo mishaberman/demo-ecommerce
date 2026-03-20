@@ -40,6 +40,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
     { href: "/contact", label: "Contact" },
+    { href: "/variants", label: "Variants" },
   ];
 
   return (
