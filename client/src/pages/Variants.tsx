@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Github, CheckCircle, XCircle, MinusCircle, AlertTriangle, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { ExternalLink, Github, CheckCircle, XCircle, MinusCircle, AlertTriangle, ChevronDown, ChevronUp, Eye, FileText, ClipboardCopy } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 
 /* ============================================================
  * VARIANTS DIRECTORY PAGE
  * Lists all 14 demo-ecommerce versions with full breakdowns
  * of their Meta Pixel and CAPI integration quality.
- * Includes per-pillar CAPI quality ratings.
+ * Includes per-pillar CAPI quality ratings and audit reports.
  * ============================================================ */
 
 type PillarRating = "Excellent" | "Good" | "Fair" | "Poor" | "None";
@@ -22,6 +23,9 @@ interface Variant {
   capiMethod: string;
   tagline: string;
   description: string;
+  auditScore: number | null;
+  auditMethod: string;
+  auditSummary: string;
   pixelSummary: string;
   capiSummary: string;
   keyIssues: string[];
@@ -77,6 +81,9 @@ const variants: Variant[] = [
     gradeColor: "bg-emerald-500",
     capiMethod: "Client-Side Simulation",
     tagline: "Near-perfect implementation",
+    auditScore: 25,
+    auditMethod: "Direct HTTP",
+    auditSummary: "The CAPI audit reveals a client-side CAPI implementation with a quality score of 25/100. The implementation correctly sends key events and user data parameters, including hashed PII and deduplication IDs. However, the score is significantly impacted because CAPI requests are executed directly from client-side JavaScript, exposing the access token. The omission of client_ip_address reduces event matching potential.",
     description: "The gold standard. Full advanced matching (em, ph, fn, ln, external_id), all 8 standard events with complete parameters, event_id on every event for deduplication, properly hashed CAPI with SHA-256, fbc/fbp cookie forwarding, data processing options, and setUserData on all form pages.",
     pixelSummary: "All events use fbq('track') with complete parameters including content_ids, content_name, content_type, value, currency, and num_items. Event IDs attached to every event.",
     capiSummary: "Full CAPI with SHA-256 hashed PII, fbc/fbp cookies, client_user_agent, event_id deduplication, data_processing_options, and proper action_source.",
@@ -101,6 +108,9 @@ const variants: Variant[] = [
     gradeColor: "bg-blue-500",
     capiMethod: "Client-Side Simulation",
     tagline: "Solid pixel, basic CAPI with gaps",
+    auditScore: 0,
+    auditMethod: "Client-Side Direct HTTP",
+    auditSummary: "The Conversions API is implemented via client-side Direct HTTP POST requests, which presents significant security and data privacy risks. Score is 0/100, reflecting critical gaps: exposure of the access token in client-side code, absence of user data hashing, and lack of server-side event tracking.",
     description: "A competent implementation with room for improvement. Advanced matching covers email and phone but misses fn, ln, and external_id. Events have most parameters but some are incomplete. CAPI is present but lacks hashing and has incomplete user_data.",
     pixelSummary: "Standard events use fbq('track') with most required parameters. Some events missing content_name or num_items.",
     capiSummary: "CAPI present but PII sent unhashed. Only fbp cookie forwarded (missing fbc). No data_processing_options.",
@@ -125,6 +135,9 @@ const variants: Variant[] = [
     gradeColor: "bg-sky-500",
     capiMethod: "Console Simulation",
     tagline: "Functional but many improvement opportunities",
+    auditScore: 0,
+    auditMethod: "Direct HTTP API (Client-Side Simulation)",
+    auditSummary: "The repository has a simulated client-side CAPI implementation which does not send true server-side events to Meta. Key issues include complete lack of a server-side implementation, missing essential user data parameters for matching (like client_ip_address and client_user_agent), no hashing of PII, and a placeholder access token exposed in the client-side code.",
     description: "The original baseline. Pixel fires all standard events but with incomplete parameters. CAPI is simulated client-side with placeholder token. No advanced matching, no event_id, no hashing, no noscript fallback.",
     pixelSummary: "All standard events fire via fbq('track') but many missing content_name, num_items, or content_type. No event_id.",
     capiSummary: "Simulated CAPI — logs to console but doesn't actually send to Graph API. No user_data, no hashing.",
@@ -149,6 +162,9 @@ const variants: Variant[] = [
     gradeColor: "bg-yellow-500",
     capiMethod: "None",
     tagline: "Pixel only, many parameter gaps, no CAPI",
+    auditScore: 0,
+    auditMethod: "None",
+    auditSummary: "Complete absence of a Meta Conversions API (CAPI) implementation. While a Meta Pixel is present for client-side tracking, it is poorly configured, lacking both Advanced Matching and a noscript fallback. This setup severely limits data collection, making the business susceptible to data loss from browser-based tracking prevention.",
     description: "Pixel-only implementation with significant gaps. No advanced matching, no noscript, and several events have minimal parameters. No CAPI whatsoever.",
     pixelSummary: "Events fire but with minimal parameters. Missing content_name, content_type, num_items on most events.",
     capiSummary: "No CAPI implementation at all.",
@@ -173,6 +189,9 @@ const variants: Variant[] = [
     gradeColor: "bg-orange-500",
     capiMethod: "None",
     tagline: "Bare minimum — only 3 events, no CAPI",
+    auditScore: 0,
+    auditMethod: "None",
+    auditSummary: "Complete absence of a Meta Conversions API implementation. All event tracking is handled by the client-side Meta Pixel only. CAPI Quality Score is 0/100, representing a critical gap in data collection leading to under-reporting of conversions and reduced campaign performance.",
     description: "Only PageView, Purchase, and AddToCart fire. All other events are no-ops. Minimal parameters on existing events. No CAPI whatsoever.",
     pixelSummary: "Only 3 of 8+ standard events implemented. Minimal parameters.",
     capiSummary: "No CAPI implementation at all.",
@@ -197,6 +216,9 @@ const variants: Variant[] = [
     gradeColor: "bg-orange-600",
     capiMethod: "Client-Side Simulation",
     tagline: "Strong CAPI but broken pixel (wrong ID, unhashed PII)",
+    auditScore: 25,
+    auditMethod: "Direct HTTP POST (Client-Side)",
+    auditSummary: "The repository has a client-side CAPI implementation with a quality score of 25/100. The implementation correctly handles event deduplication and user data hashing. However, CAPI requests are sent from the client-side, exposing the access token. The pixel implementation is also broken, using an incorrect pixel ID, which prevents successful event deduplication.",
     description: "Paradoxical setup: CAPI is excellent (hashing, event_id, fbc/fbp, DPO) but pixel uses WRONG pixel ID. Advanced matching passes raw unhashed PII. Dedup broken due to pixel ID mismatch.",
     pixelSummary: "Pixel fires all events with event_id, BUT uses wrong pixel ID (extra digit). Advanced matching passes raw unhashed PII.",
     capiSummary: "Excellent CAPI: correct pixel ID, SHA-256 hashing, fbc/fbp, event_id, DPO. But dedup broken due to pixel ID mismatch.",
@@ -221,6 +243,9 @@ const variants: Variant[] = [
     gradeColor: "bg-orange-500",
     capiMethod: "Client-Side Simulation",
     tagline: "Every event fires twice — no deduplication",
+    auditScore: 0,
+    auditMethod: "Direct HTTP POST",
+    auditSummary: "Critical security risk and severe implementation gaps. The Conversions API is implemented entirely on the client-side, exposing a hardcoded access token. The implementation suffers from duplicated events, complete lack of user data hashing, and missing essential parameters for EMQ and attribution (event_id and fbc).",
     description: "Every event fires TWICE — once immediately and once via setTimeout. CAPI also sends each event twice. No event_id, making dedup impossible. Inflates all conversion counts by 2x.",
     pixelSummary: "All events fire twice via fbq('track'). No event_id. Correct pixel ID and decent parameters.",
     capiSummary: "CAPI present but each event sent twice with no event_id. Incomplete user_data.",
@@ -245,6 +270,9 @@ const variants: Variant[] = [
     gradeColor: "bg-red-500",
     capiMethod: "Client-Side Simulation",
     tagline: "Correct structure but wrong event names on wrong pages",
+    auditScore: 0,
+    auditMethod: "Direct HTTP (Client-Side)",
+    auditSummary: "Client-side CAPI implementation with critical flaws resulting in a score of 0/100. Although CAPI events are being sent, the implementation is insecure and functionally incorrect. The access token is hardcoded and exposed. The event mapping is incorrect with wrong CAPI events firing on wrong user actions (e.g., AddToCart on a product view), leading to inaccurate reporting.",
     description: "Structurally looks correct but event names are SWAPPED: product pages fire AddToCart, cart fires ViewContent, checkout fires Lead, contact fires CompleteRegistration, lead form fires Purchase (inflating revenue!). Currency inconsistent.",
     pixelSummary: "Events fire with event_id and parameters, but names are WRONG for each page context.",
     capiSummary: "CAPI mirrors the wrong events consistently. Has event_id but incomplete user_data.",
@@ -269,6 +297,9 @@ const variants: Variant[] = [
     gradeColor: "bg-red-700",
     capiMethod: "None",
     tagline: "Deprecated patterns, trackCustom, wrong params, no CAPI",
+    auditScore: 0,
+    auditMethod: "None",
+    auditSummary: "Complete absence of a Meta Conversions API (CAPI) implementation. The existing Meta Pixel setup is severely outdated, relying on deprecated functions, incorrect event tracking methods (trackCustom for standard events), and redundant pixel firing. Key issues include use of trackCustom for Purchase and AddToCart, no server-side tracking, no deduplication, and no user data hashing.",
     description: "Everything is wrong in a legacy way. fbevents.js loaded TWICE. Uses deprecated setUserProperties. Standard events sent via trackCustom — Meta won't optimize. Wrong parameter names. Legacy img-tag pixel creates duplicates. No CAPI.",
     pixelSummary: "Mix of fbq('track') and fbq('trackCustom'). trackCustom used for AddToCart, Purchase, CompleteRegistration — won't optimize.",
     capiSummary: "No CAPI implementation whatsoever.",
@@ -295,6 +326,9 @@ const variants: Variant[] = [
     gradeColor: "bg-sky-500",
     capiMethod: "Direct HTTP POST (fetch)",
     tagline: "High coverage + freshness, low EMQ + no privacy",
+    auditScore: 15,
+    auditMethod: "Direct HTTP POST (Client-Side)",
+    auditSummary: "CAPI implementation is functional but exhibits critical security vulnerabilities and data gaps, resulting in a score of 15/100. The primary issue is that CAPI requests are executed directly from the client-side via Direct HTTP POST, exposing the access token. Missing key user data parameters (client_ip_address, fbc, fbp cookies). Hashing and deduplication are present but the client-side architecture is a significant security risk.",
     description: "Uses raw fetch() POST directly to Meta Graph API. All 8 events sent server-side with event_id for dedup. However, hashing doesn't normalize before SHA-256, fbc/fbp cookies are NOT forwarded, and there are no data_processing_options. Access token is exposed client-side.",
     pixelSummary: "All events fire with event_id and complete parameters. Good pixel base code with advanced matching (em, ph).",
     capiSummary: "Direct HTTP POST to Graph API. Hashes PII but without normalization. Missing fbc/fbp, no DPO, access token exposed client-side, no retry logic.",
@@ -319,6 +353,9 @@ const variants: Variant[] = [
     gradeColor: "bg-blue-500",
     capiMethod: "Meta Business SDK (class-based)",
     tagline: "Good EMQ + structured code, but NO deduplication",
+    auditScore: 10,
+    auditMethod: "Meta Business SDK (Client-side Simulation)",
+    auditSummary: "Client-side simulation of the Meta Business SDK for CAPI, representing a critical architectural flaw. This approach exposes the access token and negates the primary security benefits of server-side integration. The implementation completely lacks event_id parameters for deduplication, leading to high risk of event duplication. Score is 10/100. While PII hashing and user data parameters are present, the foundational issues render it insecure.",
     description: "Simulates Meta Business SDK patterns with UserData, CustomData, ServerEvent, and EventRequest classes. Proper SHA-256 normalization and hashing. Reads fbc/fbp cookies. Rich user_data. BUT: no event_id anywhere — dedup is impossible. Search is pixel-only. data_processing_options present but empty array.",
     pixelSummary: "All events fire via fbq('track') with good parameters. No eventID passed to pixel events.",
     capiSummary: "SDK-style class construction with proper hashing and normalization. Rich user_data (em, ph, fn, ln, ct, st, zp). But NO event_id = no dedup. Search is pixel-only.",
@@ -343,6 +380,9 @@ const variants: Variant[] = [
     gradeColor: "bg-emerald-400",
     capiMethod: "Parameter Builder Library",
     tagline: "Excellent EMQ/dedup/privacy, but only 4 events covered server-side",
+    auditScore: 25,
+    auditMethod: "Direct HTTP POST (Client-Side)",
+    auditSummary: "Client-side Direct HTTP API with a score of 25/100. Major deductions for client-side implementation, hardcoded access token, and missing client_ip_address. While the implementation includes advanced features like hashing, deduplication, and comprehensive user data, the fundamental architectural flaw of client-side CAPI makes it unsuitable for production use.",
     description: "The highest quality CAPI code — auto fbc/fbp management, proper hashing with normalization, external_id, retry logic, data_processing_options with opt_out. BUT only ViewContent, AddToCart, and Purchase are sent via CAPI. InitiateCheckout, Lead, Contact, CompleteRegistration, and Search are pixel-only with logged warnings.",
     pixelSummary: "All events fire with eventID. Excellent parameters on all events.",
     capiSummary: "Parameter Builder style with auto fbc/fbp, retry logic, full hashing, external_id, DPO. But only 3 commerce events + PageView sent server-side. 5 events are pixel-only.",
@@ -367,9 +407,12 @@ const variants: Variant[] = [
     gradeColor: "bg-sky-400",
     capiMethod: "CAPI Gateway (proxy endpoint)",
     tagline: "Good coverage/dedup but poor EMQ, sparse params, no privacy",
+    auditScore: 20,
+    auditMethod: "Client-Side Gateway",
+    auditSummary: "Client-side approach routing events through a proxy endpoint referred to as a 'CAPI Gateway.' While this method includes event deduplication via event_id, the audit uncovered critical deficiencies: transmission of unhashed PII from the client to the gateway, complete absence of server-side signals like client_ip_address. Score is 20/100. Incomplete user and event data substantially undermine EMQ.",
     description: "Routes events through a gateway proxy URL. All 8 events sent with event_id for dedup. BUT: only sends em and ph to gateway (fn/ln/ct/st/zp stored but never sent!). PII sent UNHASHED relying on gateway to hash. CAPI custom_data is sparse — missing content_name, num_items on most events. No data_processing_options.",
     pixelSummary: "All events fire with event_id and complete parameters. Good pixel implementation.",
-    capiSummary: "Gateway proxy style. All events sent but only em/ph in user_data (fn/ln/ct/st/zp ignored). PII sent unhashed. Sparse custom_data. No DPO. No retry logic.",
+    capiSummary: "Gateway proxy receives all events with event_id. But only em/ph in user_data (fn/ln stored but never sent). PII sent unhashed. Sparse custom_data.",
     keyStrengths: ["All 8 events sent to gateway", "event_id on all events", "fbc/fbp cookies forwarded", "Real-time sending", "Gateway handles auth"],
     keyIssues: ["Only em/ph sent — fn/ln/ct/st/zp stored but NEVER included", "PII sent UNHASHED to gateway (security risk)", "Sparse custom_data (missing content_name, num_items)", "No data_processing_options", "No retry logic — events lost if gateway down", "Gateway URL is placeholder"],
     pillars: { eventCoverage: "Excellent", emq: "Poor", dedup: "Good", dataFreshness: "Excellent", paramCompleteness: "Poor", privacyDpo: "None", implQuality: "Fair" },
@@ -391,6 +434,9 @@ const variants: Variant[] = [
     gradeColor: "bg-sky-400",
     capiMethod: "GTM Server-Side (dataLayer)",
     tagline: "Excellent coverage but GA4 name mismatch, poor EMQ, no privacy",
+    auditScore: 40,
+    auditMethod: "GTM Server-Side",
+    auditSummary: "CAPI implemented through a Google Tag Manager server-side container. Successfully covers all standard e-commerce events and includes event_id for deduplication. However, critical deficiencies include complete absence of PII hashing, failure to send valuable user data (name, location) to GTM, and omission of key server-side parameters (action_source, client_ip_address, client_user_agent). Score is 40/100.",
     description: "Uses dataLayer.push() with GA4 event names (view_item, add_to_cart) instead of Meta names (ViewContent, AddToCart). sGTM tag must map correctly or dedup fails. Only email/phone pushed to dataLayer — fn/ln/ct/st/zp stored but NEVER sent. No consent_state, no data_processing_options. Uses sendBeacon for reliability.",
     pixelSummary: "All events fire with event_id and complete parameters using Meta event names.",
     capiSummary: "dataLayer push with GA4 names (view_item not ViewContent). Only em/ph in user_data. No DPO. sendBeacon backup to sGTM. Dedup at risk from name mismatch.",
@@ -454,12 +500,26 @@ function StatusLabel({ status }: { status: boolean | string }) {
   return <span>{labels[status] || status}</span>;
 }
 
+function AuditScoreBadge({ score }: { score: number | null }) {
+  if (score === null) return <span className="text-[10px] text-muted-foreground">N/A</span>;
+  let color = "bg-red-500/80 text-white";
+  if (score >= 40) color = "bg-yellow-500 text-white";
+  if (score >= 60) color = "bg-blue-500 text-white";
+  if (score >= 80) color = "bg-emerald-500 text-white";
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${color}`}>
+      {score}/100
+    </span>
+  );
+}
+
 // ============================================================
 // VARIANT CARD
 // ============================================================
 
 function VariantCard({ variant, index }: { variant: Variant; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const [auditExpanded, setAuditExpanded] = useState(false);
 
   return (
     <motion.div
@@ -476,12 +536,14 @@ function VariantCard({ variant, index }: { variant: Variant; index: number }) {
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-lg font-semibold font-[family-name:var(--font-display)]">{variant.name}</h3>
             <span className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground font-mono">{variant.slug}</span>
+            <AuditScoreBadge score={variant.auditScore} />
           </div>
           <p className="text-sm text-muted-foreground mt-1">{variant.tagline}</p>
           <p className="text-xs text-muted-foreground mt-0.5">CAPI Method: <span className="font-medium text-foreground">{variant.capiMethod}</span></p>
           <div className="flex gap-3 mt-3">
             <a href={variant.repo} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"><Github className="w-3.5 h-3.5" /> GitHub</a>
             <a href={variant.liveUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"><Eye className="w-3.5 h-3.5" /> Live Site</a>
+            <button onClick={() => { navigator.clipboard.writeText(variant.repo.replace("https://github.com/", "")); toast.success("Copied repo path!"); }} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"><ClipboardCopy className="w-3.5 h-3.5" /> Copy Repo</button>
           </div>
         </div>
       </div>
@@ -505,6 +567,24 @@ function VariantCard({ variant, index }: { variant: Variant; index: number }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Audit Report Summary */}
+      <div className="px-5 pb-3">
+        <button onClick={() => setAuditExpanded(!auditExpanded)} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary hover:underline">
+          <FileText className="w-3.5 h-3.5" />
+          CAPI Audit Report (Score: {variant.auditScore !== null ? `${variant.auditScore}/100` : "N/A"})
+          {auditExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        {auditExpanded && (
+          <div className="mt-3 bg-muted/30 border border-border rounded-sm p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <AuditScoreBadge score={variant.auditScore} />
+              <span className="text-xs text-muted-foreground">Method: <span className="font-medium text-foreground">{variant.auditMethod}</span></span>
+            </div>
+            <p className="text-sm leading-relaxed">{variant.auditSummary}</p>
+          </div>
+        )}
       </div>
 
       {/* Summary */}
@@ -621,6 +701,7 @@ export default function Variants() {
                 <tr className="bg-muted/50">
                   <th className="text-left p-3 font-semibold sticky left-0 bg-muted/50 z-10">Variant</th>
                   <th className="p-3 font-semibold text-center">Grade</th>
+                  <th className="p-3 font-semibold text-center">Audit</th>
                   <th className="p-3 font-semibold text-center">Links</th>
                   <th className="p-3 font-semibold text-center">CAPI Method</th>
                   <th className="p-3 font-semibold text-center">Coverage</th>
@@ -637,6 +718,7 @@ export default function Variants() {
                   <tr key={v.slug} className="hover:bg-muted/20">
                     <td className="p-3 font-medium sticky left-0 bg-card z-10">{v.name}</td>
                     <td className="p-3 text-center"><span className={`${v.gradeColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded`}>{v.grade}</span></td>
+                    <td className="p-3 text-center"><AuditScoreBadge score={v.auditScore} /></td>
                     <td className="p-3 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <a href={v.repo} target="_blank" rel="noopener noreferrer" title="GitHub Repo" className="text-muted-foreground hover:text-primary transition-colors"><Github className="w-3.5 h-3.5" /></a>
