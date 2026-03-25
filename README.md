@@ -1,69 +1,83 @@
-# demo-ecommerce
+# demo-ecommerce (Base) ![Grade: C-](https://img.shields.io/badge/Grade-C---yellow)
 
-## Overview
-This variant demonstrates a **basic** implementation of the Meta Pixel with a simulated Conversions API (CAPI) setup. It is part of a collection of demo e-commerce sites that showcase different levels of Meta Pixel and CAPI implementation quality. Each variant is deployed on GitHub Pages.
+This is the baseline e-commerce demo variant, serving as the starting point for all others. It features a complete Meta Pixel implementation with all standard e-commerce events and a comprehensive set of user and product parameters. While the client-side code also constructs Conversions API event payloads, these are **not** sent to Meta's servers. Instead, the payloads are simply logged to the browser's developer console for inspection. This variant is graded a C- because it lacks a functional CAPI implementation, which is critical for data reliability, and exposes a (non-functional) access token in the frontend code.
 
-**Live Site:** https://mishaberman.github.io/demo-ecommerce/
-**Quality Grade:** B-
+### Quick Facts
 
-## Meta Pixel Setup
+| Attribute | Value |
+|---|---|
+| Pixel ID | `1684145446350033` |
+| CAPI Method | Console simulation (payloads logged to console, not sent) |
+| Grade | C- |
+| Live Site URL | [https://mishaberman.github.io/demo-ecommerce/](https://mishaberman.github.io/demo-ecommerce/) |
+| GitHub Repo | [https://github.com/mishaberman/demo-ecommerce](https://github.com/mishaberman/demo-ecommerce) |
 
-### Base Pixel Code
-- **Pixel ID:** `1684145446350033`
-- **Location:** The base code is loaded in the `<head>` tag of `index.html`.
-- **Noscript Fallback:** A `<noscript>` tag is included to track users with JavaScript disabled.
+### What's Implemented
 
-### Advanced Matching
-- **Method:** Basic Advanced Matching is implemented by passing the user's email address directly in the `fbq('init')` call.
-- **User Data:** Only the `em` (email) field is passed.
-- **Issues:** No `setUserData` call is used, and the email is not hashed, which is a poor practice for privacy.
+- ✅ Meta Pixel base code installed on all pages.
+- ✅ All standard e-commerce events are tracked via Meta Pixel (`ViewContent`, `AddToCart`, `InitiateCheckout`, `Purchase`).
+- ✅ Additional standard events are tracked (`Lead`, `Search`, `CompleteRegistration`).
+- ✅ Rich parameters are included with all events (e.g., `value`, `currency`, `content_ids`).
+- ✅ Automatic Advanced Matching is enabled, sending hashed user data (`em`, `ph`, `fn`, `ln`) with events.
+- ✅ `_fbp` (browser ID) and `_fbc` (click ID) cookies are correctly set and included in Pixel events.
+- ✅ User data for Advanced Matching is hashed using SHA-256 on the client side before being sent to Meta.
+- ✅ A unique `event_id` is generated for each event, enabling potential deduplication if CAPI were active.
+- ✅ Data Processing Options (DPO) for CCPA are implemented and sent with events.
+- ✅ CAPI event payloads are correctly structured in the client-side code.
 
-## Conversions API (CAPI) Setup
+### What's Missing or Broken
 
-### Method
-**Console Simulation:** This variant does not have a true Conversions API implementation. Instead, it uses a client-side JavaScript function that simulates CAPI calls by printing the event payload to the browser's developer console (`console.log`). This is a common technique for initial development and debugging but does not send any data to Meta.
+- ❌ **CAPI Events Not Sent:** The primary issue is that the Conversions API events are never actually sent to Meta. The `sendCAPIEvent` function only outputs the event payload to the browser console (`console.log`).
+- ❌ **No Server-Side Logic:** The entire implementation is client-side. There is no backend server to securely handle CAPI events, which is the recommended architecture.
+- ❌ **Access Token Exposed:** A placeholder access token is visible in the public frontend JavaScript code. While it's non-functional in this variant, exposing credentials in client-side code is a major security vulnerability.
 
-### Implementation Details
-- **Endpoint:** No actual HTTP requests are made. Events are logged to the console.
-- **Access Token:** The access token is not used or exposed because no server-side calls are made.
-- **User Data:** No `user_data` is sent via CAPI, as it's a simulation.
-- **Hashing:** No PII hashing is performed.
-- **Data Processing Options:** `data_processing_options` for CCPA/GDPR are not included.
+### Event Coverage
 
-## Events Tracked
+This table shows which events are fired and through which channel. "CAPI (Simulated)" means the event payload is created and logged to the console but not sent to the Graph API.
 
-| Event Name         | Pixel | CAPI | Parameters Sent                                                 | event_id |
-| ------------------ | ----- | ---- | --------------------------------------------------------------- | -------- |
-| ViewContent        | Yes   | Yes  | content_ids, content_type, content_name, value, currency        | No       |
-| AddToCart          | Yes   | Yes  | content_ids, content_type, content_name, value, currency, num_items | No       |
-| InitiateCheckout   | Yes   | Yes  | content_ids, content_type, content_name, value, currency, num_items | No       |
-| Purchase           | Yes   | Yes  | content_ids, content_type, content_name, value, currency, num_items | No       |
-| Lead               | Yes   | Yes  | content_name, value, currency                                   | No       |
+| Event | Meta Pixel | Conversions API |
+|---|:---:|:---:|
+| `ViewContent` | ✅ | CAPI (Simulated) |
+| `AddToCart` | ✅ | CAPI (Simulated) |
+| `InitiateCheckout` | ✅ | CAPI (Simulated) |
+| `Purchase` | ✅ | CAPI (Simulated) |
+| `Lead` | ✅ | CAPI (Simulated) |
+| `Search` | ✅ | CAPI (Simulated) |
+| `CompleteRegistration` | ✅ | CAPI (Simulated) |
 
-## Event Deduplication
+### Parameter Completeness
 
-- **event_id Generation:** No `event_id` is generated in this variant.
-- **Deduplication:** Event deduplication is **not implemented**. Since no `event_id` is sent with either Pixel or CAPI events, Meta cannot deduplicate identical events sent from the browser and the server.
+This table details the parameters sent with each event. All user information parameters (`em`, `ph`, `fn`, `ln`) are sent with every event via Advanced Matching.
 
-## Custom Data
+| Event | `content_type` | `content_ids` | `value` | `currency` | `content_name` | `num_items` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| `ViewContent` | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| `AddToCart` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `InitiateCheckout`| ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `Purchase` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `Lead` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `Search` | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| `CompleteRegistration`| ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
 
-- **Custom Properties:** No `custom_data` fields are sent with any events.
-- **Content-Type:** The `content_type` is set to `product`.
-- **Content IDs:** The `content_ids` are the product SKU (e.g., `'P12345'`).
+### Architecture
 
-## Known Issues
+The tracking for this variant is implemented entirely in client-side JavaScript (`/assets/js/main.js`). 
 
-This variant is intentionally designed to demonstrate the following common issues:
+1.  **Pixel Implementation:** The Meta Pixel base code is loaded on every page. Standard events are fired using `fbq('track', ...)` calls triggered by user actions (e.g., clicking "Add to Cart"). User data for Advanced Matching is collected from form fields, hashed using a client-side SHA-256 function, and included in the `fbq('init', ...)` call.
 
-- **No Event Deduplication:** The lack of an `event_id` means that if a real CAPI integration were active, all events would be duplicated, leading to inflated performance metrics.
-- **CAPI is a Simulation:** The "CAPI" implementation is a fake console log. It prints event data to the browser console but never actually sends it to Meta's servers. This is a common starting point for developers but is not a real CAPI setup.
-- **Missing Standard Events:** Key events like `Search`, `CompleteRegistration`, and `Contact` are not tracked.
-- **Basic Advanced Matching:** Only the email (`em`) parameter is used in the `fbq('init')` call. No other user data is collected or sent via `setUserData`.
+2.  **CAPI Simulation:** The same functions that trigger Pixel events also call a `sendCAPIEvent` function. This function gathers the same event and user data, formats it into a proper CAPI JSON payload, and includes the `event_id` generated by the browser. However, instead of making a `fetch` or `axios` POST request to the Graph API endpoint, it simply logs the complete payload to the browser's console using `console.log`. The access token is stored in a variable but is never used.
 
-## Security Considerations
+### How to Use This Variant
 
-- **Access Token:** The Meta Conversions API access token is **not exposed**, as the CAPI implementation is a client-side simulation and does not make real API calls.
-- **PII Hashing:** Personally Identifiable Information (PII) is **not hashed**. The email address is passed in plaintext to `fbq('init')`.
+To test and audit this variant:
 
----
-*This variant is part of the [Meta Pixel Quality Variants](https://github.com/mishaberman) collection for testing and educational purposes.*
+1.  **Open the Live Site:** Navigate to the [live site URL](https://mishaberman.github.io/demo-ecommerce/).
+2.  **Open Developer Tools:** Open your browser's developer tools and switch to the **Console** tab. You will also want to use the **Meta Pixel Helper** browser extension.
+3.  **Trigger Events:**
+    - View a product page to trigger `ViewContent`.
+    - Click "Add to Cart" to trigger `AddToCart`.
+    - Go to the cart and click "Proceed to Checkout" to trigger `InitiateCheckout`.
+    - Fill out the checkout form and click "Place Order" to trigger `Purchase`.
+4.  **Observe the Output:**
+    - **Pixel Helper:** Use the Pixel Helper extension to confirm that each Pixel event fires correctly with the expected parameters.
+    - **Browser Console:** Observe the JSON payloads being logged to the console. Note that these are the CAPI events that *should* be firing but are not. You can inspect their structure and data to see what Meta *would* have received via CAPI.
