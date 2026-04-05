@@ -227,53 +227,23 @@ interface CAPIEventData {
   [key: string]: unknown;
 }
 
-function sendCAPIEvent(eventName: string, eventData: CAPIEventData) {
-  const payload = {
-    data: [{
-      event_name: eventName,
-      event_time: Math.floor(Date.now() / 1000),
-      // IMPROVEMENT: Should include event_id matching the pixel event_id
-      // event_id: generateEventId(),
-      action_source: 'website', // IMPROVEMENT: Should vary (website, app, email, etc.)
-      event_source_url: window.location.href,
-      user_data: {
-        // IMPROVEMENT: Should include these fields:
-        // client_ip_address: '', // Must be set server-side
-        // client_user_agent: navigator.userAgent, // Should be set server-side
-        // fbc: getCookie('_fbc'), // Click ID cookie
-        // fbp: getCookie('_fbp'), // Browser ID cookie
-        // em: '', // Hashed email
-        // ph: '', // Hashed phone
-        // fn: '', // Hashed first name
-        // ln: '', // Hashed last name
-        // external_id: '', // Your user ID, hashed
-      },
-      custom_data: eventData,
-      // MISSING: data_processing_options for CCPA compliance
-      // MISSING: data_processing_options_country
-      // MISSING: data_processing_options_state
-      // MISSING: opt_out field
-    }],
-    // IMPROVEMENT: Should use real access token
-    access_token: 'PLACEHOLDER_ACCESS_TOKEN',
-  };
+import { v4 as uuidv4 } from 'uuid';
 
-  // Simulated CAPI call — in production this should be a server-side POST to:
-  // https://graph.facebook.com/v18.0/{PIXEL_ID}/events
-  const capiEndpoint = `https://graph.facebook.com/v18.0/${PIXEL_ID}/events`;
-  
-  // Log the simulated CAPI call (not actually sending to avoid errors with placeholder token)
-  console.log(`[CAPI Simulation] Would POST to: ${capiEndpoint}`);
-  console.log(`[CAPI Simulation] Payload:`, JSON.stringify(payload, null, 2));
-  
-  // IMPROVEMENT: Real implementation would be:
-  // fetch(capiEndpoint, {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payload),
-  // }).catch(err => console.error('[CAPI] Failed:', err));
-  // 
-  // But this should actually be done SERVER-SIDE, not client-side
+function sendCAPIEvent(eventName: string, eventData: CAPIEventData, userData: any) {
+  const event_id = uuidv4();
+  trackPixelEvent(eventName, { ...eventData, event_id });
+
+  fetch('/api/meta-capi', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      eventName, 
+      eventData, 
+      userData, 
+      event_source_url: window.location.href,
+      event_id 
+    }),
+  }).catch(err => console.error('[CAPI] Failed:', err));
 }
 
 // IMPROVEMENT: Should implement these helper functions:
